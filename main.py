@@ -154,20 +154,67 @@ plt.ylabel('Number of Data Points')
 plt.title('Number of Data Points in Each Cluster')
 plt.show()
 
-# Perform dimensionality reduction and clustering for each method
-methods = ['ACP', 'tsne']
-for method in methods:
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+from sklearn.cluster import KMeans
+from sklearn.pipeline import make_pipeline
+from sklearn.metrics import normalized_mutual_info_score, adjusted_rand_score
+from sentence_transformers import SentenceTransformer
+from sklearn.datasets import fetch_20newsgroups
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+
+# Load data
+ng20 = fetch_20newsgroups(subset='test')
+corpus = ng20.data[:2000]
+labels = ng20.target[:2000]
+
+# Model embedding
+model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+embeddings = model.encode(corpus)
+
+# Function for dimensionality reduction and clustering
+def perform_dimensionality_reduction_and_clustering(X, method, k):
+    if method == 'PCA':
+        reducer = PCA(n_components=2)
+    elif method == 'tsne':
+        reducer = TSNE(n_components=2)
+    else:
+        raise ValueError("Invalid method. Use 'PCA' or 'tsne'.")
+
     # Perform dimensionality reduction
-    red_emb = dim_red(embeddings, 20, method)
+    red_emb = reducer.fit_transform(X)
 
     # Perform clustering
-    pred = clust(red_emb, k)
+    kmeans = KMeans(n_clusters=k)
+    pred = kmeans.fit_predict(red_emb)
 
     # Evaluate clustering results
     nmi_score = normalized_mutual_info_score(pred, labels)
     ari_score = adjusted_rand_score(pred, labels)
 
     # Print results
-    print(f'Method: {method}\nNMI: {nmi_score:.2f} \nARI: {ari_score:.2f}\n')
+    print(f'Method: {method}\nNMI: {nmi_score:.2f} \nARI: {ari_score:.2f}')
+
+    # Visualize the results
+    visualize_results(red_emb, pred, method)
+
+# Function to visualize the results
+def visualize_results(embedding, pred, method):
+    # Create a DataFrame for visualization
+    df = pd.DataFrame({'embedding_1': embedding[:, 0], 'embedding_2': embedding[:, 1], 'cluster': pred})
+
+    # Scatter plot
+    plt.figure(figsize=(10, 6))
+    sns.scatterplot(x='embedding_1', y='embedding_2', hue='cluster', data=df, palette='viridis')
+    plt.title(f'Scatter Plot of Embeddings with Clusters ({method})')
+    plt.show()
+
+# Perform dimensionality reduction and clustering for PCA
+perform_dimensionality_reduction_and_clustering(embeddings, method='PCA', k=len(set(labels)))
+
+# Perform dimensionality reduction and clustering for t-SNE
+perform_dimensionality_reduction_and_clustering(embeddings, method='tsne', k=len(set(labels)))
 
 
