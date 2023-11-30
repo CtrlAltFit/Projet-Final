@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.pipeline import make_pipeline
